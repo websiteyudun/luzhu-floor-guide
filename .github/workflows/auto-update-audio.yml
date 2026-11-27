@@ -1,0 +1,42 @@
+name: 自動更新導覽語音 MP3
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "js/data.js"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update-audio:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 取得最新程式碼
+        uses: actions/checkout@v4
+
+      - name: 設定 Node.js 環境
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: 安裝語音生成套件
+        run: npm install
+
+      - name: 增量更新變動文字的 MP3 音檔
+        run: node scripts/generate-audio.js
+
+      - name: 自動提交並推送更新後的 MP3 與清單
+        run: |
+          if [ -n "$(git status --porcelain assets/audio js/audio-manifest.js)" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add assets/audio js/audio-manifest.js
+            git commit -m "chore(audio): 依 data.js 文字內容自動更新 MP3 語音 [skip ci]"
+            git push
+          else
+            echo "導覽文字與 MP3 指紋一致，無需更新。"
+          fi

@@ -355,6 +355,30 @@
       return parts ? parts.map((s) => s.trim()).filter(Boolean) : [cleaned];
     }
 
+    hashText(text) {
+      const normalized = String(text || "").trim().replace(/\s+/g, " ");
+      let h = 0x811c9dc5;
+      for (let i = 0; i < normalized.length; i++) {
+        h ^= normalized.charCodeAt(i);
+        h = Math.imul(h, 0x01000193);
+      }
+      return (h >>> 0).toString(16).padStart(8, "0");
+    }
+
+    hasValidStaticAudio(guideId, audioKey, text) {
+      const manifest = window.AUDIO_MANIFEST && window.AUDIO_MANIFEST[guideId];
+      if (!audioKey || !manifest || !manifest[audioKey]) return null;
+      const entry = manifest[audioKey];
+      if (typeof entry === "string") {
+        return entry;
+      }
+      // 防呆機制：只有當預錄 MP3 的文字指紋與目前台詞一致時才播放，避免改字後還唸舊台詞
+      if (entry.file && entry.hash === this.hashText(text)) {
+        return entry.file;
+      }
+      return null;
+    }
+
     speak(text, guideId, rate = 1.0, audioKey = null) {
       this.stop(true);
       this.sentences = this.splitSentences(text);
@@ -366,11 +390,11 @@
       this.playSessionId += 1;
       const session = this.playSessionId;
 
-      // 若專案已掛載預錄 MP3 清單（window.AUDIO_MANIFEST），優先播放 MP3 音檔
-      const manifest = window.AUDIO_MANIFEST && window.AUDIO_MANIFEST[guideId];
-      if (audioKey && manifest && manifest[audioKey]) {
+      // 優先播放文字版本相符的預錄 MP3 音檔（手機與電腦皆享一致的自然台灣 AI 人聲）
+      const matchedFile = this.hasValidStaticAudio(guideId, audioKey, text);
+      if (matchedFile) {
         this._playStaticAudio(
-          DATA.guides[guideId].audioBasePath + manifest[audioKey],
+          DATA.guides[guideId].audioBasePath + matchedFile,
           session,
           () => this._speakWithWebSpeech(session)
         );
@@ -756,25 +780,39 @@
     const { voice: activeVoice, isLocked, isManual } = voiceEngine.pickBestVoice(state.guideId);
     const total = twVoices.length;
     const guide = DATA.guides[state.guideId];
+    const hasStaticAudio = Boolean(
+      window.AUDIO_MANIFEST &&
+        window.AUDIO_MANIFEST[state.guideId] &&
+        Object.keys(window.AUDIO_MANIFEST[state.guideId]).length > 0
+    );
 
     dom.voiceQualityHint.classList.remove("is-natural", "is-legacy");
 
     if (total === 0) {
-      dom.voiceQualityHint.classList.add("is-legacy");
-      dom.voiceQualityHint.textContent =
-        "尚未偵測到 zh-TW 語音清單，請確認裝置已安裝繁體中文（台灣）語音包。";
+      if (hasStaticAudio) {
+        dom.voiceQualityHint.classList.add("is-natural");
+        dom.voiceQualityHint.textContent = `已啟用「${guide.name}」預錄台灣 AI 語音 MP3，所有手機與電腦皆可直接播放！`;
+      } else {
+        dom.voiceQualityHint.classList.add("is-legacy");
+        dom.voiceQualityHint.textContent =
+          "尚未偵測到 zh-TW 語音清單，請確認裝置已安裝繁體中文（台灣）語音包。";
+      }
       return;
     }
 
     if (isLocked && activeVoice) {
       dom.voiceQualityHint.classList.add("is-natural");
-      dom.voiceQualityHint.textContent = `已為「${guide.name}」鎖定專屬聲線：${guide.voicePrefs.lockedLabel}（共偵測 ${total} 組 zh-TW 聲線，可隨時改選試聽）。`;
+      dom.voiceQualityHint.textContent = hasStaticAudio
+        ? `目前優先使用「${guide.name}」預錄台灣 AI 語音（手機／電腦皆適用）；下方可測試裝置備援聲線（已鎖定 ${guide.voicePrefs.lockedLabel}）。`
+        : `已為「${guide.name}」鎖定專屬聲線：${guide.voicePrefs.lockedLabel}（共偵測 ${total} 組 zh-TW 聲線，可隨時改選試聽）。`;
     } else if (isManual && activeVoice) {
       dom.voiceQualityHint.classList.add("is-natural");
-      dom.voiceQualityHint.textContent = `目前手動測試聲線：${activeVoice.name}（重新點選竹竹／圓圓將恢復預設鎖定聲線）。`;
+      dom.voiceQualityHint.textContent = `目前手動測試裝置聲線：${activeVoice.name}（重新點選竹竹／圓圓將恢復預設音檔與鎖定聲線）。`;
     } else if (activeVoice) {
       dom.voiceQualityHint.classList.add("is-natural");
-      dom.voiceQualityHint.textContent = `此裝置未內建「${guide.voicePrefs.lockedLabel}」，已自動改用台灣聲線：${activeVoice.name}。`;
+      dom.voiceQualityHint.textContent = hasStaticAudio
+        ? `目前優先使用「${guide.name}」預錄台灣 AI 語音（手機與電腦皆有男／女專屬聲線）；裝置備援為 ${activeVoice.name}。`
+        : `此裝置未內建「${guide.voicePrefs.lockedLabel}」，已自動改用台灣聲線：${activeVoice.name}。`;
     }
   }
 
@@ -985,7 +1023,7 @@
     if (greetUser) {
       const guide = DATA.guides[guideId];
       // 暫時以招呼語朗讀並顯示於對話框或直接朗讀目前項目
-      voiceEngine.speak(guide.greeting, state.guideId, state.speechRate);
+      voiceEngine.speak(guide.greeting, state.guideId, state.speechRate, "welcome");
     } else if (wasSpeaking) {
       playCurrentScript();
     } else {
@@ -1216,7 +1254,7 @@
             `<span class="speech-sentence" data-sentence-idx="${idx}">${escapeHtml(s)}</span>`
         )
         .join("");
-      voiceEngine.speak(guide.greeting, state.guideId, state.speechRate);
+      voiceEngine.speak(guide.greeting, state.guideId, state.speechRate, "welcome");
     });
 
     // 長輩友善大字模式（A+ 放大 / A++ 特大，再點一次目前按鈕即恢復標準）
