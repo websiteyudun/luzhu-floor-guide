@@ -222,9 +222,28 @@ async function main() {
     }
   }
 
+  // 自動清理已在 data.js 中被刪除的空間對應的舊 MP3 檔案
+  let deletedCount = 0;
+  for (const guideId of Object.keys(VOICE_CANDIDATES)) {
+    const dir = path.join(AUDIO_ROOT, guideId);
+    if (!fs.existsSync(dir)) continue;
+    const validFiles = new Set(
+      Object.values(nextManifest[guideId]).map((entry) => entry.file)
+    );
+    for (const file of fs.readdirSync(dir)) {
+      if (file.endsWith(".mp3") && !validFiles.has(file)) {
+        fs.unlinkSync(path.join(dir, file));
+        deletedCount += 1;
+        console.log(`[清理] 已移除廢棄音檔：${guideId}/${file}`);
+      }
+    }
+  }
+
   writeManifest(nextManifest);
 
-  console.log(`\n完成！本次新生成/更新 ${generatedCount} 個 MP3，略過未變更 ${skippedCount} 個。`);
+  console.log(
+    `\n完成！本次新增/更新 ${generatedCount} 個 MP3、刪除 ${deletedCount} 個舊 MP3，略過未變更 ${skippedCount} 個。`
+  );
   console.log(`已更新音檔清單：${MANIFEST_PATH}`);
 }
 
