@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>桃園市蘆竹地政事務所｜樓層與空間配置語音導覽</title>
+  <meta name="description" content="桃園市蘆竹地政事務所互動式樓層平面圖與語音導覽網站，由吉祥物竹竹與圓圓帶您認識 1 至 3 樓課室業務與便民設施。" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body data-guide="zhuzhu">
+  <!-- 頂部機關標題與工具列 -->
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="brand-group">
+        <div class="brand-emblem" aria-hidden="true">
+          <img id="headerBrandAvatar" src="assets/images/mascot-zhuzhu.png" alt="" />
+        </div>
+        <div class="brand-text">
+          <h1>桃園市蘆竹地政事務所 <span class="title-pill">樓層語音導覽</span></h1>
+          <p class="brand-sub">服務轄區：蘆竹區・大園區 ｜ 1F 登記櫃檯・2F 地價行政・3F 測量資訊</p>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <!-- 快速切換導覽員（竹竹 / 圓圓） -->
+        <div class="guide-pill-switch" role="group" aria-label="選擇導覽員">
+          <button type="button" class="guide-pill-btn active" data-select-guide="zhuzhu" aria-pressed="true">
+            <img src="assets/images/mascot-zhuzhu.png" alt="竹竹" />
+            <span>竹竹</span>
+          </button>
+          <button type="button" class="guide-pill-btn" data-select-guide="yuanyuan" aria-pressed="false">
+            <img src="assets/images/mascot-yuanyuan.png" alt="圓圓" />
+            <span>圓圓</span>
+          </button>
+        </div>
+
+        <button type="button" id="fontSizeToggle" class="util-btn" aria-pressed="false" title="切換長輩友善大字模式">
+          <span class="util-icon">A+</span>
+          <span class="util-label">大字模式</span>
+        </button>
+
+        <button type="button" id="welcomeAudioBtn" class="util-btn util-btn-primary" title="聽導覽員自我介紹">
+          <span class="util-icon">🔊</span>
+          <span class="util-label">歡迎導覽</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- 雙軌導覽列：洽公需求快搜 + 一鍵定位標籤 -->
+  <section class="quick-bar" aria-label="洽公需求快速搜尋">
+    <div class="quick-bar-inner">
+      <div class="search-box-wrap">
+        <span class="search-icon" aria-hidden="true">🔍</span>
+        <input
+          type="search"
+          id="spotSearchInput"
+          class="search-input"
+          placeholder="搜尋課室、業務或設施（例如：謄本、過戶、鑑界、實價登錄、哺乳室…）"
+          autocomplete="off"
+          aria-label="搜尋課室、業務或設施"
+        />
+        <div id="searchResults" class="search-results hidden" role="listbox" aria-label="搜尋結果"></div>
+      </div>
+
+      <div class="quick-actions-scroll" id="quickActionsList" aria-label="熱門洽公快捷按鈕">
+        <!-- 由 JS 動態產生 -->
+      </div>
+    </div>
+  </section>
+
+  <!-- 主內容雙欄工作區 -->
+  <main class="main-workspace">
+    <!-- 左側主舞台：樓層分頁 + 互動平面圖 / 大樓總覽 -->
+    <section class="stage-column" aria-label="樓層配置互動區">
+      <!-- 樓層切換頁籤 -->
+      <nav class="floor-tabs" role="tablist" aria-label="樓層選擇">
+        <button type="button" class="floor-tab" role="tab" data-floor="overview" aria-selected="false">
+          <span class="tab-code">總覽</span>
+          <span class="tab-name">大樓樓層一覽</span>
+        </button>
+        <button type="button" class="floor-tab active" role="tab" data-floor="1f" aria-selected="true">
+          <span class="tab-code">1F</span>
+          <span class="tab-name">登記・全功能櫃檯</span>
+        </button>
+        <button type="button" class="floor-tab" role="tab" data-floor="2f" aria-selected="false">
+          <span class="tab-code">2F</span>
+          <span class="tab-name">地價・行政檔案</span>
+        </button>
+        <button type="button" class="floor-tab" role="tab" data-floor="3f" aria-selected="false">
+          <span class="tab-code">3F</span>
+          <span class="tab-name">測量・資訊空間</span>
+        </button>
+      </nav>
+
+      <!-- 大樓總覽視圖（切換至總覽時顯示） -->
+      <div id="overviewPanel" class="overview-panel hidden">
+        <div class="overview-banner">
+          <div>
+            <span class="eyebrow">BUILDING DIRECTORY</span>
+            <h2>桃園市蘆竹地政事務所｜全館樓層配置總覽</h2>
+            <p id="overviewWelcomeText"></p>
+          </div>
+          <button type="button" id="playOverviewAllBtn" class="action-btn action-btn-accent">
+            <span>🎧</span> 聽全館導覽簡介
+          </button>
+        </div>
+
+        <div id="buildingStack" class="building-stack">
+          <!-- 3F -> 2F -> 1F 立體樓層導覽卡，由 JS 動態產生 -->
+        </div>
+      </div>
+
+      <!-- 單一樓層互動平面圖視圖（1F / 2F / 3F） -->
+      <div id="floorMapPanel" class="floor-map-panel">
+        <div class="map-toolbar">
+          <div class="map-title-block">
+            <div class="map-title-row">
+              <span id="currentFloorBadge" class="floor-badge">1F</span>
+              <h2 id="currentFloorTitle">一樓｜登記與便民櫃檯</h2>
+            </div>
+            <p id="currentFloorEn" class="map-subtitle">1st Floor — Registration &amp; General Services</p>
+          </div>
+
+          <div class="map-controls">
+            <button type="button" id="floorOverviewSpeakBtn" class="chip-btn chip-btn-accent" title="聽本樓層整體空間配置語音">
+              <span>🗣️</span> 本層總覽語音
+            </button>
+            <button type="button" id="autoTourBtn" class="chip-btn" title="依序自動帶逛本樓層所有空間">
+              <span>🚶</span> 帶逛本層
+            </button>
+            <div class="zoom-group" aria-label="地圖縮放">
+              <button type="button" id="zoomOutBtn" class="icon-btn" title="縮小地圖" aria-label="縮小地圖">－</button>
+              <span id="zoomLevelText" class="zoom-label">100%</span>
+              <button type="button" id="zoomInBtn" class="icon-btn" title="放大地圖" aria-label="放大地圖">＋</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 空間分類篩選與提示 -->
+        <div class="map-subbar">
+          <div class="category-filters" role="group" aria-label="篩選地圖標點">
+            <button type="button" class="filter-pill active" data-category="all">全部空間</button>
+            <button type="button" class="filter-pill" data-category="service">洽公櫃檯</button>
+            <button type="button" class="filter-pill" data-category="office">業務課室</button>
+            <button type="button" class="filter-pill" data-category="facility">便民設施</button>
+          </div>
+          <span class="map-hint">💡 點擊平面圖上的彩色標點，即可查看業務並聽語音介紹</span>
+        </div>
+
+        <!-- 互動平面圖畫布 -->
+        <div class="map-viewport" id="mapViewport">
+          <div class="map-canvas" id="mapCanvas">
+            <img id="floorPlanImage" src="assets/images/floor-1f.jpg" alt="一樓平面配置圖" draggable="false" />
+            <div id="hotspotsLayer" class="hotspots-layer" aria-label="樓層空間互動熱點">
+              <!-- 熱點標記由 JS 依據精準百分比座標動態生成 -->
+            </div>
+          </div>
+        </div>
+
+        <!-- 本樓層空間快速索引清單 -->
+        <div class="floor-spots-directory">
+          <div class="directory-header">
+            <h3>本樓層空間一覽 <span id="spotCountBadge" class="count-badge">9 處</span></h3>
+            <span class="directory-note">點選下方任一項目可同步高亮地圖位置</span>
+          </div>
+          <div id="floorSpotsGrid" class="spots-grid">
+            <!-- 由 JS 動態產生 -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 右側導覽台：竹竹 & 圓圓 角色切換 + 語音播放 + 課室業務說明 -->
+    <aside class="guide-column" id="guideColumn" aria-label="吉祥物語音導覽台">
+      <div class="guide-card">
+        <!-- 導覽員選擇器（由民眾自行選擇一位導覽員） -->
+        <div class="guide-selector-header">
+          <span class="selector-caption">請選擇您的專屬導覽員</span>
+          <div class="guide-choice-grid" role="radiogroup" aria-label="選擇導覽員">
+            <button type="button" class="guide-choice-card active" data-select-guide="zhuzhu" role="radio" aria-checked="true">
+              <img src="assets/images/mascot-zhuzhu.png" alt="竹竹" />
+              <div class="choice-meta">
+                <strong>竹竹</strong>
+                <span>親切服務・台灣女聲</span>
+              </div>
+            </button>
+            <button type="button" class="guide-choice-card" data-select-guide="yuanyuan" role="radio" aria-checked="false">
+              <img src="assets/images/mascot-yuanyuan.png" alt="圓圓" />
+              <div class="choice-meta">
+                <strong>圓圓</strong>
+                <span>陽光測繪・台灣男聲</span>
+              </div>
+            </button>
+          </div>
+        </div>
+
+        <!-- 吉祥物立繪與聲波狀態區 -->
+        <div class="mascot-stage" id="mascotStage">
+          <div class="mascot-bg-glow" aria-hidden="true"></div>
+          <div class="mascot-visual">
+            <img id="mascotPortrait" src="assets/images/mascot-zhuzhu.png" alt="導覽員竹竹" class="mascot-img" />
+          </div>
+          <div class="mascot-status-side">
+            <div class="mascot-name-row">
+              <h3 id="mascotName">竹竹</h3>
+              <span id="mascotVoiceTag" class="voice-tag">台灣女聲</span>
+            </div>
+            <p id="mascotRoleText" class="mascot-role">親切服務導覽員</p>
+
+            <!-- 語音播放聲波動畫 -->
+            <div class="speaking-indicator" id="speakingIndicator" aria-live="polite">
+              <div class="wave-bars" aria-hidden="true">
+                <span></span><span></span><span></span><span></span><span></span>
+              </div>
+              <span id="speakingStatusText">準備就緒，點擊下方按鈕開始導覽</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 語音控制面板 -->
+        <div class="audio-controls-panel">
+          <div class="primary-audio-row">
+            <button type="button" id="prevSpotBtn" class="ctrl-btn ctrl-icon-btn" title="上一站" aria-label="上一站">⏮</button>
+            <button type="button" id="playPauseBtn" class="ctrl-btn ctrl-play-btn">
+              <span id="playPauseIcon">▶</span>
+              <span id="playPauseLabel">開始語音導覽</span>
+            </button>
+            <button type="button" id="stopAudioBtn" class="ctrl-btn ctrl-icon-btn" title="停止播放" aria-label="停止播放">⏹</button>
+            <button type="button" id="nextSpotBtn" class="ctrl-btn ctrl-icon-btn" title="下一站" aria-label="下一站">⏭</button>
+          </div>
+
+          <div class="audio-progress-wrap" aria-hidden="true">
+            <div id="audioProgressBar" class="audio-progress-bar"></div>
+          </div>
+
+          <div class="secondary-audio-row">
+            <div class="speed-group" role="group" aria-label="語速調整">
+              <span class="mini-label">語速</span>
+              <button type="button" class="speed-btn" data-rate="0.85">慢</button>
+              <button type="button" class="speed-btn active" data-rate="1">標準</button>
+              <button type="button" class="speed-btn" data-rate="1.15">快</button>
+            </div>
+
+            <label class="autoplay-toggle" title="點選地圖熱點時自動播放語音">
+              <input type="checkbox" id="autoPlayOnSelect" checked />
+              <span>點選即播</span>
+            </label>
+          </div>
+
+          <!-- 台灣中文 zh-TW 聲線切換與即時試聽 -->
+          <div class="voice-tester-box">
+            <div class="voice-selector-row">
+              <label for="voiceSelect" class="voice-select-label">🎙️ 台灣 zh-TW 聲線</label>
+              <select id="voiceSelect" class="voice-select" aria-label="切換測試目前瀏覽器支援的所有台灣中文語音">
+                <option value="auto">載入瀏覽器 zh-TW 語音清單中…</option>
+              </select>
+              <button type="button" id="testVoiceBtn" class="voice-test-btn" title="試聽目前選擇的台灣聲線">🔊 試聽</button>
+            </div>
+            <p id="voiceQualityHint" class="voice-quality-hint"></p>
+          </div>
+        </div>
+
+        <!-- 導覽對話氣泡（含逐句同步字幕高亮） -->
+        <div class="dialogue-section">
+          <div class="spot-header-bar">
+            <div class="spot-badges">
+              <span id="activeSpotFloorBadge" class="mini-floor-badge">1F</span>
+              <span id="activeSpotCategoryBadge" class="mini-cat-badge">樓層總覽</span>
+            </div>
+            <span id="tourStepCounter" class="tour-counter">總覽</span>
+          </div>
+
+          <h4 id="activeSpotTitle" class="active-spot-title">一樓｜登記與便民櫃檯</h4>
+          <p id="activeSpotEn" class="active-spot-en">1st Floor — Registration &amp; General Services</p>
+
+          <div class="speech-bubble" id="speechBubble" aria-live="polite">
+            <!-- 逐句 span 由 JS 動態填入，朗讀時即時高亮 -->
+          </div>
+        </div>
+
+        <!-- 位置動線與一般地政常見業務介紹 -->
+        <div class="spot-details-section" id="spotDetailsSection">
+          <div class="detail-box location-box">
+            <h5>📍 空間位置</h5>
+            <p id="spotLocationHint">一樓大門入口進入後正前方與兩側</p>
+          </div>
+
+          <div class="detail-box services-box">
+            <h5>📋 常見辦理業務與空間說明</h5>
+            <ul id="spotServicesList" class="services-list">
+              <!-- 由 JS 動態產生 -->
+            </ul>
+          </div>
+
+          <div class="detail-box tip-box" id="spotTipBox">
+            <h5>💡 洽公小提醒</h5>
+            <p id="spotTipText"></p>
+          </div>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <!-- 手機／平板專用底部迷你語音導覽列 -->
+  <div class="mobile-mini-dock" id="mobileMiniDock" aria-label="快速語音控制列">
+    <div class="dock-info">
+      <img id="dockAvatar" class="dock-avatar" src="assets/images/mascot-zhuzhu.png" alt="" />
+      <div class="dock-text">
+        <div class="dock-top-row">
+          <span id="dockFloorBadge" class="dock-floor-badge">1F</span>
+          <span id="dockStatus" class="dock-status">竹竹導覽中</span>
+        </div>
+        <div id="dockSpotTitle" class="dock-title">一樓｜登記與便民櫃檯</div>
+      </div>
+    </div>
+    <div class="dock-actions">
+      <button type="button" id="dockPlayBtn" class="dock-btn dock-btn-play" aria-label="播放或暫停語音導覽">▶ 播放</button>
+      <button type="button" id="dockJumpBtn" class="dock-btn" aria-label="捲動至詳細文字介紹">看介紹</button>
+    </div>
+  </div>
+
+  <!-- 頁尾資訊 -->
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <p>
+        <strong>桃園市蘆竹地政事務所</strong> 樓層與空間配置互動語音導覽 ｜ 導覽角色：竹竹、圓圓
+      </p>
+      <p class="footer-meta">
+        資料參考來源：<a href="https://www.luzhu-land.tycg.gov.tw/cp.aspx?n=14391" target="_blank" rel="noopener noreferrer">蘆竹地政事務所官網樓層導覽</a>
+        ｜ 建議使用 Edge / Chrome 瀏覽器以獲得最自然的台灣中文語音體驗
+      </p>
+    </div>
+  </footer>
+
+  <script src="js/data.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
