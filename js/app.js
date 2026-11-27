@@ -26,7 +26,7 @@
     speechRate: 1.0, // 0.85 | 1.0 | 1.15
     autoPlayOnSelect: true,
     isAutoTouring: false,
-    largeText: false,
+    fontScale: "normal", // 'normal' | 'large' | 'xlarge'
     manualVoiceUriByGuide: {
       zhuzhu: "auto",
       yuanyuan: "auto"
@@ -37,9 +37,11 @@
   // DOM 參照快取
   // =========================================================================
   const dom = {
+    root: document.documentElement,
     body: document.body,
     headerBrandAvatar: document.getElementById("headerBrandAvatar"),
-    fontSizeToggle: document.getElementById("fontSizeToggle"),
+    fontLargeBtn: document.getElementById("fontLargeBtn"),
+    fontXLargeBtn: document.getElementById("fontXLargeBtn"),
     welcomeAudioBtn: document.getElementById("welcomeAudioBtn"),
     spotSearchInput: document.getElementById("spotSearchInput"),
     searchResults: document.getElementById("searchResults"),
@@ -1167,6 +1169,22 @@
       .replace(/"/g, "&quot;");
   }
 
+  function applyFontScale(scale) {
+    state.fontScale = scale;
+    dom.root.classList.toggle("font-large", scale === "large");
+    dom.root.classList.toggle("font-xlarge", scale === "xlarge");
+
+    if (dom.fontLargeBtn) {
+      dom.fontLargeBtn.setAttribute("aria-pressed", String(scale === "large"));
+    }
+    if (dom.fontXLargeBtn) {
+      dom.fontXLargeBtn.setAttribute("aria-pressed", String(scale === "xlarge"));
+    }
+    try {
+      localStorage.setItem("luzhu_guide_font_scale", scale);
+    } catch (_) {}
+  }
+
   // =========================================================================
   // 事件綁定與初始化
   // =========================================================================
@@ -1201,11 +1219,14 @@
       voiceEngine.speak(guide.greeting, state.guideId, state.speechRate);
     });
 
-    // 長輩友善大字模式
-    dom.fontSizeToggle.addEventListener("click", () => {
-      state.largeText = !state.largeText;
-      dom.body.classList.toggle("large-text", state.largeText);
-      dom.fontSizeToggle.setAttribute("aria-pressed", String(state.largeText));
+    // 長輩友善大字模式（A+ 放大 / A++ 特大，再點一次目前按鈕即恢復標準）
+    [dom.fontLargeBtn, dom.fontXLargeBtn].forEach((btn) => {
+      if (!btn) return;
+      btn.addEventListener("click", () => {
+        const target = btn.getAttribute("data-font-scale");
+        const nextScale = state.fontScale === target ? "normal" : target;
+        applyFontScale(nextScale);
+      });
     });
 
     // 樓層分頁切換
@@ -1346,6 +1367,12 @@
   }
 
   function init() {
+    try {
+      const savedScale = localStorage.getItem("luzhu_guide_font_scale");
+      if (savedScale === "large" || savedScale === "xlarge") {
+        applyFontScale(savedScale);
+      }
+    } catch (_) {}
     restoreFromUrl();
     renderQuickActions();
     renderBuildingOverview();
